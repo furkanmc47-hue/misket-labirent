@@ -1,0 +1,257 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; connect-src ws: wss:">
+
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<title>Misket Labirenti</title>
+<link rel="icon" href="icon.png">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="view"></div>
+
+<!-- Oyun içi göstergeler -->
+<div id="hud" class="panel"></div>
+<canvas id="minimap"></canvas>
+<div id="clues" class="panel"><h3>İpuçları <span id="clueCount"></span></h3><ul id="clueList"></ul><div id="seq"></div></div>
+<div id="help" class="panel">WASD: hareket · Sağ tık + fare (labirentte fare): dön · Boşluk: zıpla · F: konuş / joker · N: defter · C: kamera · M: harita · K: kontrol noktası · T: kutular · Esc: menü</div>
+<ul id="players" class="panel"></ul>
+<div id="prompt" class="panel"></div>
+<div id="jokerSlot" class="panel"></div>
+<div id="iceOverlay"></div>
+<div id="shockOverlay"></div>
+<div id="curseOverlay"></div>
+<div id="dread"></div>
+<div id="scare"><div class="scare-face"><i></i><i></i><b></b></div></div>
+<div id="hotbar" class="panel"></div>
+<div id="toast" class="panel"></div>
+<div id="banner"><h1 id="bTitle"></h1><p id="bSub"></p></div>
+<div id="cross"></div>
+<div id="hurt"></div>
+<div id="fade"></div>
+
+<!-- Dokunmatik kontroller -->
+<div id="touch">
+  <div class="stick"><div class="knob"></div></div>
+  <div class="tbtns">
+    <button data-act="use">F</button>
+    <button data-act="dash">»</button>
+    <button data-act="jump">⤒</button>
+    <button data-act="camera">🎥</button>
+    <button data-act="pause">⏸</button>
+  </div>
+</div>
+
+<!-- Ana menü -->
+<div id="mainMenu" class="overlay"><div class="card panel menu">
+  <img src="icon.png" class="logo" alt="">
+  <h1>Misket Labirenti</h1>
+  <p class="muted" id="menuStats"></p>
+  <button id="continueBtn" class="big"></button>
+  <div class="grid2">
+    <button id="multiBtn" class="ghost">👥 Çok oyunculu (5 kişi)</button>
+    <button id="challengeBtn" class="ghost">🎯 Meydan okumalar</button>
+    <button id="notebookBtn" class="ghost">📓 Defter</button>
+    <button id="selectBtn" class="ghost">📜 Bölüm seç</button>
+    <button id="endlessBtn" class="ghost">♾ Sonsuz mod</button>
+    <button id="editorBtn" class="ghost">🛠 Bölüm editörü</button>
+    <button id="customBtn" class="ghost">🧩 Benim labirentlerim</button>
+    <button id="settingsMenuBtn" class="ghost">⚙ Ayarlar</button>
+    <button id="helpBtn" class="ghost">❓ Nasıl oynanır</button>
+  </div>
+  <label class="check"><input type="checkbox" id="timeAttack"> ⏳ Zamana karşı modu (süre dolarsa kaybedersin)</label>
+  <button id="quitBtn" class="ghost small">🚪 Çıkış</button>
+</div></div>
+
+<div id="levelSelect" class="overlay"><div class="card panel wide">
+  <h2>📜 Bölüm seç</h2>
+  <div id="levelCards"></div>
+  <button class="ghost" data-back>◀ Geri</button>
+</div></div>
+
+<div id="story" class="overlay"><div class="card panel story">
+  <div class="story-art">🔮</div>
+  <p id="storyText"></p>
+  <button id="storyNext"></button>
+</div></div>
+
+<div id="result" class="overlay"><div class="card panel">
+  <h1 id="resTitle"></h1>
+  <div id="resStars"><span>★</span><span>★</span><span>★</span></div>
+  <ul id="resCriteria"></ul>
+  <p id="resStory" class="story-line"></p>
+  <button id="resNext" class="big"></button>
+  <div><button id="resRetry" class="ghost">↻ Tekrar oyna</button><button id="resMenu" class="ghost">🏠 Ana menü</button></div>
+</div></div>
+
+<div id="ending" class="overlay"><div class="card panel story">
+  <div class="story-art" id="endingArt"></div>
+  <h1 id="endingTitle"></h1>
+  <p id="endingText"></p>
+  <p id="endingScore" class="muted"></p>
+  <div id="endingFriends"></div>
+  <button id="endingHub">🔍 Kasabaya dön, kanıt ara</button>
+  <button id="endingBtn" class="ghost">🏠 Ana menü</button>
+</div></div>
+
+<div id="settings" class="overlay"><div class="card panel">
+  <h2>⚙ Ayarlar</h2>
+  <div class="form">
+    <label>🎵 Müzik <input type="range" id="setMusic" min="0" max="1" step="0.05"></label>
+    <label>🔊 Efektler <input type="range" id="setSfx" min="0" max="1" step="0.05"></label>
+    <label>🖱 Fare hassasiyeti <input type="range" id="setSens" min="0.3" max="2.5" step="0.1"></label>
+    <label>🎥 Kamera <select id="setCam"></select></label>
+    <label>✨ Grafik <select id="setQuality"><option value="high">Yüksek (ışıltı + gölge)</option><option value="low">Düşük (hızlı)</option></select></label>
+    <label class="check"><input type="checkbox" id="setTts"> 🗣 İpuçlarını sesli oku</label>
+  </div>
+  <button id="settingsClose">Tamam</button>
+  <button id="setReset" class="ghost small">İlerlemeyi sıfırla</button>
+</div></div>
+
+<div id="howto" class="overlay"><div class="card panel wide">
+  <h2>❓ Nasıl oynanır</h2>
+  <div class="ctrl">
+    <span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></span><span>Misketi hareket ettir (1. ve 3. şahısta kameraya göre)</span>
+    <span>🖱 Fare</span><span>Kasabada sağ tuşa basılı tutarak kamerayı çevir; labirentte ekrana tıkla, Esc ile bırak</span>
+    <span><kbd>←</kbd><kbd>→</kbd> <kbd>Q</kbd><kbd>E</kbd></span><span>Klavyeyle dön (1. ve 3. şahıs)</span>
+    <span><kbd>Boşluk</kbd></span><span>Zıpla: deliklerin, dikenlerin, blokların üstünden</span>
+    <span><kbd>F</kbd></span><span>Konuş, tabela oku, küçük ayrıntıları incele; yanında kimse yoksa jokerini kullan</span>
+    <span><kbd>Tab</kbd></span><span>Joker hedefini değiştir (çok oyunculu)</span>
+    <span><kbd>N</kbd></span><span>Defter: bulduğun izler, belgeler ve tanık ifadeleri</span>
+    <span><kbd>Shift</kbd></span><span>Atılma (Limon'u kurtarınca): çatlak duvarları kırar</span>
+    <span><kbd>C</kbd></span><span>Kamera: Üstten → 3. şahıs → 1. şahıs (labirent dışında yalnızca gözden veya arkadan)</span>
+    <span><kbd>M</kbd> <kbd>K</kbd> <kbd>T</kbd></span><span>Harita · kontrol noktasına dön · kutuları sıfırla</span>
+    <span><kbd>Esc</kbd> <kbd>P</kbd></span><span>Duraklat · <kbd>F11</kbd> tam ekran</span>
+    <span>🎮</span><span>Gamepad: sol çubuk hareket, sağ çubuk bakış, A zıpla, Y kamera, X kontrol noktası, Start duraklat</span>
+  </div>
+  <div class="legend">
+    <span>💎 Gizli mücevher (yıldız için)</span><span>❤️ +1 can</span><span>⚡ Hız</span><span>🛡️ Kalkan: bir darbeyi engeller</span>
+    <span>🧲 Mıknatıs: eşyaları çeker</span><span>❄️ Dondur: düşmanlar durur</span><span>👽 Uzaylı UFO: yakalarsa kaybedersin!</span>
+    <span>🔪 Diken: kırmızı yanıp sönünce çıkar</span><span>≈ Çöken zemin: üstünde durma</span><span>📦 Kutu: plakaya it</span>
+    <span>🪞 Ayna: çarpınca döner, lazeri yönlendir</span><span>🕳 Çukur: labirentin çıkışı</span>
+    <span>🪙 Sikke: Topaç Usta'nın dükkânında harca</span><span>🌸 Zıplatıcı: seni fırlatır</span>
+    <span>🗝 Anahtar: hepsini topla, kapı açılsın</span><span>❄️ Buz Jokeri: rakibi 15 sn dondurur</span>
+    <span>⚡ Elektrik Jokeri: çarpar, yakındakilere sıçrar</span><span>✨ Ufak bir parıltı: yaklaş, bak</span>
+  </div>
+  <p class="muted">Yıldızlar: ⭐ bitir · ⭐ hedef sürenin altında bitir · ⭐ bütün gizli mücevherleri topla</p>
+  <p class="muted">Gölge Kral'ın sırrını kimse sana söylemeyecek. Herkesle konuş, yerdeki izlere bak, yeteneklerini kazanınca eski yerlere dön ve son kararını meydan kürsüsünde ver.</p>
+  <button class="ghost" data-back>◀ Geri</button>
+</div></div>
+
+<div id="challengeList" class="overlay"><div class="card panel wide">
+  <h2>🎯 Meydan okumalar</h2>
+  <div id="challengeCards" class="cards"></div>
+  <button class="ghost" data-back>◀ Geri</button>
+</div></div>
+
+<div id="mpMenu" class="overlay"><div class="card panel">
+  <h2>👥 Çok oyunculu</h2>
+  <p class="muted">En fazla 5 kişi aynı odada oynayabilir.</p>
+  <div class="form">
+    <label>Adın <input id="mpName" maxlength="16" placeholder="Misket"></label>
+    <label>Rengin <span id="mpColors"></span></label>
+  </div>
+  <button id="mpHostLan" class="big">🏠 Bu bilgisayarda oda kur</button>
+  <h3>Bir odaya katıl</h3>
+  <div class="form">
+    <label>Sunucu adresi <input id="mpAddress" placeholder="192.168.1.5"></label>
+    <label>Oda kodu <input id="mpCode" maxlength="4" placeholder="Ev sahibinin kendi odasıysa boş bırak"></label>
+  </div>
+  <button id="mpJoin">🚪 Katıl</button><button id="mpHostRemote" class="ghost">☁ Bu sunucuda yeni oda kur</button>
+  <div id="mpError"></div>
+  <button id="mpBack" class="ghost">◀ Geri</button>
+</div></div>
+
+<div id="lobby" class="overlay"><div class="card panel">
+  <h2>👥 Lobi</h2>
+  <p id="lobbyAddress" class="selectable"></p>
+  <p id="lobbyCode" class="muted selectable"></p>
+  <ul id="lobbyPlayers" class="player-list"></ul>
+  <div class="form">
+    <label>Oyun türü <select id="lobbyMode"></select></label>
+    <label id="lobbyLevelRow">Labirent <select id="lobbyLevel"></select></label>
+    <label id="lobbyChallengeRow">Meydan okuma <select id="lobbyChallenge"></select></label>
+  </div>
+  <p id="lobbyModeText" class="muted"></p>
+  <button id="lobbyStart" class="big">▶ Başlat</button>
+  <p id="lobbyWait" class="muted">Ev sahibinin başlatması bekleniyor...</p>
+  <button id="lobbyLeave" class="ghost">🚪 Odadan çık</button>
+</div></div>
+
+<div id="mpResult" class="overlay"><div class="card panel">
+  <h1 id="mpWinner"></h1>
+  <ul id="mpRanking" class="player-list"></ul>
+  <button id="mpToLobby" class="big">👥 Lobiye dön</button>
+  <button id="mpLeave" class="ghost">🚪 Odadan çık</button>
+</div></div>
+
+<div id="analysis" class="overlay"><div class="card panel wide">
+  <h2>⚖ Meydan Kürsüsü: Hikâye Analizi</h2>
+  <p class="muted">Bütün kasaba toplandı. Ne gördüğünü anlat ve kanıtını göster.</p>
+  <div id="anBody"></div>
+</div></div>
+
+<div id="notebook" class="overlay"><div class="card panel wide">
+  <h2>📓 Bilye'nin Defteri</h2>
+  <div id="nbBody"></div>
+  <button id="nbClose">Kapat</button>
+</div></div>
+
+<div id="customList" class="overlay"><div class="card panel">
+  <h2>🧩 Benim labirentlerim</h2>
+  <ul id="customItems"></ul>
+  <button class="ghost" data-back>◀ Geri</button>
+</div></div>
+
+<!-- Oyun içi pencereler -->
+<div id="shop" class="overlay"><div class="card panel">
+  <h2>🌀 Topaç Usta'nın Dükkânı</h2>
+  <p id="shopCoins"></p>
+  <div id="shopBody"></div>
+  <button id="shopClose">Kapat</button>
+</div></div>
+
+<div id="finalChoice" class="overlay"><div class="card panel story">
+  <div class="story-art">🕰</div>
+  <p id="finalText"></p>
+  <button id="finalStop" class="big"></button>
+  <button id="finalWind" class="big"></button>
+</div></div>
+
+<div id="dialog" class="overlay"><div class="panel dialog-box">
+  <div id="dPortrait"></div>
+  <div class="dialog-body">
+    <b id="dName"></b>
+    <p id="dText"></p>
+    <small>Boşluk / tıkla: devam · Esc: kapat</small>
+  </div>
+</div></div>
+
+<div id="pause" class="overlay"><div class="card panel">
+  <h1>⏸ Duraklatıldı</h1>
+  <button id="resumeBtn" class="big">▶ Devam et</button>
+  <div class="grid2">
+    <button id="restartBtn" class="ghost">↻ Baştan başla</button>
+    <button id="settingsBtn" class="ghost">⚙ Ayarlar</button>
+    <button id="pauseNotebook" class="ghost">📓 Defter</button>
+  </div>
+  <button id="menuBtn" class="ghost">🏠 Ana menü</button>
+</div></div>
+
+<div id="lose" class="overlay"><div class="card panel lose-card">
+  <div class="ufo-fly">🛸</div>
+  <div class="dancer">👽</div>
+  <h1 id="loseTitle"></h1>
+  <p id="loseText"></p>
+  <p id="loseSub" class="muted"></p>
+  <button id="loseContinue" class="big">🚩 Kontrol noktasından devam</button>
+  <div><button id="loseRestart" class="ghost">↻ Baştan başla</button><button id="loseMenu" class="ghost">🏠 Ana menü</button></div>
+</div></div>
+
+<div id="editor"></div>
+
+<script src="game.js"></script>
+</body>
+</html>

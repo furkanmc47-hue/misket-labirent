@@ -1,0 +1,63 @@
+{
+  "name": "misket-labirenti",
+  "productName": "Misket Labirenti",
+  "version": "3.3.0",
+  "description": "Misket Labirenti - hikâyeli, 5 kişiye kadar çok oyunculu 3D labirent oyunu",
+  "author": "Misket Labirenti",
+  "main": "main.cjs",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "bundle": "node scripts/bundle.mjs",
+    "start": "node scripts/bundle.mjs && node scripts/start.cjs",
+    "build": "node scripts/bundle.mjs && electron-builder --win nsis portable --config.directories.output=\"%LOCALAPPDATA%\\MisketLabirenti-build\"",
+    "server": "node server/relay.cjs"
+  },
+  "build": {
+    "appId": "com.misketlabirenti.game",
+    "productName": "Misket Labirenti",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.cjs",
+      "preload.cjs",
+      "server/**/*",
+      "app/**/*",
+      "build/icon.png",
+      "package.json"
+    ],
+    "win": {
+      "icon": "build/icon.ico",
+      "target": [
+        "nsis",
+        "portable"
+      ]
+    },
+    "portable": {
+      "artifactName": "MisketLabirenti-Portable-${version}.exe"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Misket Labirenti",
+      "artifactName": "MisketLabirenti-Kurulum-${version}.exe"
+    }
+  },
+  "devDependencies": {
+    "electron": "44.4.5",
+    "electron-builder": "26.15.3",
+    "esbuild": "^0.25.0",
+    "three": "0.186.1"
+  },
+  "allowScripts": {
+    "electron@44.4.5": true,
+    "electron-winstaller@5.4.0": true,
+    "esbuild": true
+  },
+  "dependencies": {
+    "ws": "^8.22.1"
+  }
+}
